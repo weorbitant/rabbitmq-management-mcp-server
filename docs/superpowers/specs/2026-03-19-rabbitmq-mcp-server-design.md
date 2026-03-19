@@ -93,7 +93,7 @@ All tools are read-only (semantically — see note on `get-queue-messages`). The
 List all queues with summary stats.
 
 **Parameters:**
-- `sort_by?: string` — Sort field: `name`, `messages`, `consumers`, `message_rate` (default: `name`)
+- `sort_by?: string` — Sort field: `name`, `messages`, `consumers` (default: `name`). Numeric fields sort descending.
 - `filter_name?: string` — Filter queues by name substring match
 
 **Returns:** Array of queue summaries.
