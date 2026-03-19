@@ -96,9 +96,35 @@ List all queues with summary stats.
 - `sort_by?: string` — Sort field: `name`, `messages`, `consumers`, `message_rate` (default: `name`)
 - `filter_name?: string` — Filter queues by name substring match
 
-**Returns:** Array of queue summaries: name, vhost, messages (ready/unacked/total), consumers, message rates (publish/deliver/ack per second), state, consumer_utilisation.
+**Returns:** Array of queue summaries.
 
 **Sorting** is performed client-side on the returned page of results.
+
+**Example output:**
+```json
+{
+  "total_count": 12,
+  "page": 1,
+  "page_size": 100,
+  "items": [
+    {
+      "name": "orders.processing",
+      "vhost": "/",
+      "messages": 58342,
+      "messages_ready": 58100,
+      "messages_unacknowledged": 242,
+      "consumers": 2,
+      "consumer_utilisation": 0.45,
+      "message_stats": {
+        "publish_details": { "rate": 12.4 },
+        "deliver_get_details": { "rate": 3.1 },
+        "ack_details": { "rate": 2.8 }
+      },
+      "state": "running"
+    }
+  ]
+}
+```
 
 **Management API:** `GET /api/queues/{vhost}?page={page}&page_size={page_size}`
 
@@ -109,7 +135,46 @@ Deep-dive on a single queue.
 **Parameters:**
 - `queue_name: string` (required)
 
-**Returns:** Full queue details: all fields from `list-queues` plus memory usage, queue arguments (x-max-priority, x-queue-type, etc.), idle_since, policy, backing_queue_status, detailed message_stats with rate breakdowns.
+**Returns:** Full queue details including memory, arguments, policy, and detailed message stats.
+
+**Example output:**
+```json
+{
+  "name": "orders.processing",
+  "vhost": "/",
+  "messages": 58342,
+  "messages_ready": 58100,
+  "messages_unacknowledged": 242,
+  "consumers": 2,
+  "consumer_utilisation": 0.45,
+  "memory": 28491776,
+  "state": "running",
+  "arguments": {
+    "x-queue-type": "classic",
+    "x-max-priority": 10
+  },
+  "policy": "ha-all",
+  "idle_since": null,
+  "message_stats": {
+    "publish": 142850,
+    "publish_details": { "rate": 12.4 },
+    "deliver_get": 84508,
+    "deliver_get_details": { "rate": 3.1 },
+    "ack": 84266,
+    "ack_details": { "rate": 2.8 },
+    "redeliver": 120,
+    "redeliver_details": { "rate": 0.1 }
+  },
+  "backing_queue_status": {
+    "mode": "default",
+    "q1": 0,
+    "q2": 0,
+    "q3": 58100,
+    "q4": 0,
+    "len": 58100
+  }
+}
+```
 
 **Management API:** `GET /api/queues/{vhost}/{queue_name}`
 
@@ -120,7 +185,27 @@ List consumers attached to a queue.
 **Parameters:**
 - `queue_name: string` (required)
 
-**Returns:** Array of consumers: consumer_tag, channel_details (connection name, peer address, channel number), prefetch_count, ack_required, active, activity_status.
+**Returns:** Array of consumers extracted from the queue's `consumer_details`.
+
+**Example output:**
+```json
+[
+  {
+    "consumer_tag": "amq.ctag-abc123",
+    "channel_details": {
+      "connection_name": "10.0.1.50:54321 -> 10.0.1.10:5672",
+      "name": "10.0.1.50:54321 -> 10.0.1.10:5672 (1)",
+      "number": 1,
+      "peer_host": "10.0.1.50",
+      "peer_port": 54321
+    },
+    "prefetch_count": 1,
+    "ack_required": true,
+    "active": true,
+    "activity_status": "up"
+  }
+]
+```
 
 **Management API:** `GET /api/queues/{vhost}/{queue_name}` — extracts the `consumer_details` field from the queue detail response, which is more efficient than fetching all vhost consumers and filtering client-side.
 
@@ -133,7 +218,29 @@ Peek at messages in a queue. Uses `ack_requeue_true` mode — the message is fet
 - `count?: number` — Number of messages to peek (default: 1, max: 10)
 - `encoding?: string` — `auto` or `base64` (default: `auto`)
 
-**Returns:** Array of messages: payload, payload_encoding, properties (headers, content_type, delivery_mode, etc.), exchange, routing_key, redelivered, message_count.
+**Returns:** Array of messages with payload and metadata.
+
+**Example output:**
+```json
+[
+  {
+    "payload": "{\"orderId\":\"ORD-9821\",\"status\":\"pending\"}",
+    "payload_encoding": "string",
+    "payload_bytes": 43,
+    "properties": {
+      "headers": { "x-retry-count": 3 },
+      "content_type": "application/json",
+      "delivery_mode": 2,
+      "message_id": "msg-abc-123",
+      "timestamp": 1742400000
+    },
+    "exchange": "orders.exchange",
+    "routing_key": "orders.processing",
+    "redelivered": true,
+    "message_count": 58341
+  }
+]
+```
 
 **Management API:** `POST /api/queues/{vhost}/{queue_name}/get`
 
@@ -144,7 +251,33 @@ List broker connections.
 **Parameters:**
 - `filter_name?: string` — Filter by connection name substring
 
-**Returns:** Array of connections: name, state, peer_host, peer_port, ssl, protocol, user, vhost, channels, connected_at, send/recv rates, flow (backpressure indicator).
+**Returns:** Array of connections with flow control and rate info.
+
+**Example output:**
+```json
+{
+  "total_count": 5,
+  "page": 1,
+  "page_size": 100,
+  "items": [
+    {
+      "name": "10.0.1.50:54321 -> 10.0.1.10:5672",
+      "state": "running",
+      "peer_host": "10.0.1.50",
+      "peer_port": 54321,
+      "ssl": false,
+      "protocol": "AMQP 0-9-1",
+      "user": "app-service",
+      "vhost": "/",
+      "channels": 3,
+      "connected_at": 1742300000000,
+      "recv_oct_details": { "rate": 1024.5 },
+      "send_oct_details": { "rate": 8192.3 },
+      "flow": false
+    }
+  ]
+}
+```
 
 **Management API:** `GET /api/connections`
 
@@ -155,7 +288,34 @@ Details on a specific connection.
 **Parameters:**
 - `connection_name: string` (required)
 
-**Returns:** Full connection details including channel_max, frame_max, timeout, client_properties, and all fields from `list-connections`.
+**Returns:** Full connection details including client properties and limits.
+
+**Example output:**
+```json
+{
+  "name": "10.0.1.50:54321 -> 10.0.1.10:5672",
+  "state": "running",
+  "peer_host": "10.0.1.50",
+  "peer_port": 54321,
+  "ssl": false,
+  "protocol": "AMQP 0-9-1",
+  "user": "app-service",
+  "vhost": "/",
+  "channels": 3,
+  "connected_at": 1742300000000,
+  "channel_max": 2047,
+  "frame_max": 131072,
+  "timeout": 60,
+  "client_properties": {
+    "product": "node-amqp",
+    "version": "0.9.1",
+    "connection_name": "order-processor"
+  },
+  "recv_oct_details": { "rate": 1024.5 },
+  "send_oct_details": { "rate": 8192.3 },
+  "flow": false
+}
+```
 
 **Management API:** `GET /api/connections/{connection_name}`
 
@@ -166,7 +326,34 @@ List channels with diagnostic data.
 **Parameters:**
 - `connection_name?: string` — Filter by parent connection
 
-**Returns:** Array of channels: name, connection_details, number, state, prefetch_count, messages_unacknowledged, messages_unconfirmed, consumer_count, confirm, transactional.
+**Returns:** Array of channels with prefetch and unacked info.
+
+**Example output:**
+```json
+{
+  "total_count": 8,
+  "page": 1,
+  "page_size": 100,
+  "items": [
+    {
+      "name": "10.0.1.50:54321 -> 10.0.1.10:5672 (1)",
+      "connection_details": {
+        "name": "10.0.1.50:54321 -> 10.0.1.10:5672",
+        "peer_host": "10.0.1.50",
+        "peer_port": 54321
+      },
+      "number": 1,
+      "state": "running",
+      "prefetch_count": 1,
+      "messages_unacknowledged": 1,
+      "messages_unconfirmed": 0,
+      "consumer_count": 1,
+      "confirm": false,
+      "transactional": false
+    }
+  ]
+}
+```
 
 **Management API:** `GET /api/channels`
 
@@ -176,7 +363,41 @@ Broker-level overview.
 
 **Parameters:** None.
 
-**Returns:** Cluster name, RabbitMQ version, Erlang version, message totals (ready/unacked/total with rates), queue/connection/channel/consumer/exchange totals, node health, listeners.
+**Returns:** Broker-level summary with totals and rates.
+
+**Example output:**
+```json
+{
+  "cluster_name": "rabbit@prod-01",
+  "rabbitmq_version": "3.12.10",
+  "erlang_version": "26.1.2",
+  "message_stats": {
+    "publish": 1542850,
+    "publish_details": { "rate": 45.2 },
+    "deliver_get": 1484508,
+    "deliver_get_details": { "rate": 38.7 },
+    "ack": 1484200,
+    "ack_details": { "rate": 38.5 }
+  },
+  "queue_totals": {
+    "messages": 62410,
+    "messages_ready": 61800,
+    "messages_unacknowledged": 610
+  },
+  "object_totals": {
+    "queues": 12,
+    "connections": 5,
+    "channels": 8,
+    "consumers": 6,
+    "exchanges": 15
+  },
+  "node": "rabbit@prod-01",
+  "listeners": [
+    { "protocol": "amqp", "port": 5672 },
+    { "protocol": "http", "port": 15672 }
+  ]
+}
+```
 
 **Management API:** `GET /api/overview`
 
