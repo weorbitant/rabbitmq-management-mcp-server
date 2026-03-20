@@ -2,8 +2,6 @@ import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { loadConfig } from '../src/config.js';
 
 describe('loadConfig', () => {
-  const originalEnv = process.env;
-
   beforeEach(() => {
     vi.stubEnv('RABBITMQ_MANAGEMENT_URL', 'http://localhost:15672');
     vi.stubEnv('RABBITMQ_USERNAME', 'guest');
