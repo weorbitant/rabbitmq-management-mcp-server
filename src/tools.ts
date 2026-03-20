@@ -98,3 +98,77 @@ export const handleGetQueueMessages = async (
     { count, ackmode: 'ack_requeue_true', encoding }
   );
 };
+
+// --- Connection Tools ---
+
+type ListConnectionsParams = {
+  filter_name?: string;
+  page?: number;
+  page_size?: number;
+};
+
+export const handleListConnections = async (
+  client: RabbitMQClient,
+  params: ListConnectionsParams
+): Promise<PaginatedResponse<unknown>> => {
+  const page = params.page ?? 1;
+  const pageSize = params.page_size ?? 100;
+
+  const response = await client.get<PaginatedResponse<Record<string, unknown>>>(
+    `/api/connections?page=${page}&page_size=${pageSize}`
+  );
+
+  const filtered = params.filter_name
+    ? response.items.filter((c) =>
+        (c.name as string).toLowerCase().includes(params.filter_name!.toLowerCase())
+      )
+    : response.items;
+
+  return { ...response, items: filtered, filtered_count: filtered.length };
+};
+
+type ConnectionNameParam = { connection_name: string };
+
+export const handleGetConnectionDetails = async (
+  client: RabbitMQClient,
+  params: ConnectionNameParam
+): Promise<unknown> => {
+  return client.get(`/api/connections/${encodeComponent(params.connection_name)}`);
+};
+
+// --- Channel Tools ---
+
+type ListChannelsParams = {
+  connection_name?: string;
+  page?: number;
+  page_size?: number;
+};
+
+export const handleListChannels = async (
+  client: RabbitMQClient,
+  params: ListChannelsParams
+): Promise<PaginatedResponse<unknown>> => {
+  const page = params.page ?? 1;
+  const pageSize = params.page_size ?? 100;
+
+  const response = await client.get<PaginatedResponse<Record<string, unknown>>>(
+    `/api/channels?page=${page}&page_size=${pageSize}`
+  );
+
+  const filtered = params.connection_name
+    ? response.items.filter((ch) => {
+        const connDetails = ch.connection_details as { name?: string } | undefined;
+        return connDetails?.name === params.connection_name;
+      })
+    : response.items;
+
+  return { ...response, items: filtered, filtered_count: filtered.length };
+};
+
+// --- Overview Tool ---
+
+export const handleGetOverview = async (
+  client: RabbitMQClient
+): Promise<unknown> => {
+  return client.get('/api/overview');
+};

@@ -5,6 +5,10 @@ import {
   handleGetQueueDetails,
   handleListQueueConsumers,
   handleGetQueueMessages,
+  handleListConnections,
+  handleGetConnectionDetails,
+  handleListChannels,
+  handleGetOverview,
 } from '../src/tools.js';
 
 const createMockClient = (overrides: Partial<RabbitMQClient> = {}): RabbitMQClient => ({
@@ -140,5 +144,87 @@ describe('get-queue-messages handler', () => {
       expect.any(String),
       expect.objectContaining({ count: 10 })
     );
+  });
+});
+
+describe('list-connections handler', () => {
+  it('should call correct API endpoint', async () => {
+    const mockResponse = {
+      page: 1, page_count: 1, page_size: 100, total_count: 1, filtered_count: 1,
+      items: [{ name: 'conn-1', state: 'running', flow: false }],
+    };
+    const client = createMockClient({ get: vi.fn().mockResolvedValue(mockResponse) });
+
+    const result = await handleListConnections(client, {});
+
+    expect(client.get).toHaveBeenCalledWith('/api/connections?page=1&page_size=100');
+    expect(result.items).toHaveLength(1);
+  });
+
+  it('should filter connections by name', async () => {
+    const mockResponse = {
+      page: 1, page_count: 1, page_size: 100, total_count: 2, filtered_count: 2,
+      items: [
+        { name: '10.0.1.50:1234 -> broker:5672', state: 'running' },
+        { name: '10.0.2.99:5678 -> broker:5672', state: 'running' },
+      ],
+    };
+    const client = createMockClient({ get: vi.fn().mockResolvedValue(mockResponse) });
+
+    const result = await handleListConnections(client, { filter_name: '10.0.1' });
+
+    expect(result.items).toHaveLength(1);
+  });
+});
+
+describe('get-connection-details handler', () => {
+  it('should call correct API endpoint with encoded name', async () => {
+    const client = createMockClient({ get: vi.fn().mockResolvedValue({ name: 'conn-1' }) });
+
+    await handleGetConnectionDetails(client, { connection_name: 'conn-1' });
+
+    expect(client.get).toHaveBeenCalledWith('/api/connections/conn-1');
+  });
+});
+
+describe('list-channels handler', () => {
+  it('should call correct API endpoint', async () => {
+    const mockResponse = {
+      page: 1, page_count: 1, page_size: 100, total_count: 1, filtered_count: 1,
+      items: [{ name: 'chan-1', prefetch_count: 10, messages_unacknowledged: 5 }],
+    };
+    const client = createMockClient({ get: vi.fn().mockResolvedValue(mockResponse) });
+
+    const result = await handleListChannels(client, {});
+
+    expect(client.get).toHaveBeenCalledWith('/api/channels?page=1&page_size=100');
+    expect(result.items).toHaveLength(1);
+  });
+
+  it('should filter channels by connection name', async () => {
+    const mockResponse = {
+      page: 1, page_count: 1, page_size: 100, total_count: 2, filtered_count: 2,
+      items: [
+        { name: 'conn-1 (1)', connection_details: { name: 'conn-1' } },
+        { name: 'conn-2 (1)', connection_details: { name: 'conn-2' } },
+      ],
+    };
+    const client = createMockClient({ get: vi.fn().mockResolvedValue(mockResponse) });
+
+    const result = await handleListChannels(client, { connection_name: 'conn-1' });
+
+    expect(result.items).toHaveLength(1);
+  });
+});
+
+describe('get-overview handler', () => {
+  it('should call /api/overview endpoint', async () => {
+    const mockOverview = { cluster_name: 'rabbit@node1', rabbitmq_version: '3.12.10' };
+    const client = createMockClient({ get: vi.fn().mockResolvedValue(mockOverview) });
+
+    const result = await handleGetOverview(client);
+
+    expect(client.get).toHaveBeenCalledWith('/api/overview');
+    expect(result).toEqual(mockOverview);
   });
 });
