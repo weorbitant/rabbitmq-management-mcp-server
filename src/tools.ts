@@ -38,7 +38,7 @@ export const handleListQueues = async (
   params: ListQueuesParams
 ): Promise<PaginatedResponse<unknown>> => {
   const page = params.page ?? 1;
-  const pageSize = params.page_size ?? 100;
+  const pageSize = Math.min(params.page_size ?? 100, 500);
 
   const response = await client.get<PaginatedResponse<Record<string, unknown>>>(
     `/api/queues/${client.encodedVhost}?page=${page}&page_size=${pageSize}`
@@ -77,7 +77,7 @@ export const handleListQueueConsumers = async (
   const queue = await client.get<{ consumer_details?: unknown[] }>(
     `/api/queues/${client.encodedVhost}/${encodeComponent(params.queue_name)}`
   );
-  return queue.consumer_details ?? [];
+  return Array.isArray(queue.consumer_details) ? queue.consumer_details : [];
 };
 
 type GetMessagesParams = {
@@ -112,7 +112,7 @@ export const handleListConnections = async (
   params: ListConnectionsParams
 ): Promise<PaginatedResponse<unknown>> => {
   const page = params.page ?? 1;
-  const pageSize = params.page_size ?? 100;
+  const pageSize = Math.min(params.page_size ?? 100, 500);
 
   const response = await client.get<PaginatedResponse<Record<string, unknown>>>(
     `/api/connections?page=${page}&page_size=${pageSize}`
@@ -149,7 +149,7 @@ export const handleListChannels = async (
   params: ListChannelsParams
 ): Promise<PaginatedResponse<unknown>> => {
   const page = params.page ?? 1;
-  const pageSize = params.page_size ?? 100;
+  const pageSize = Math.min(params.page_size ?? 100, 500);
 
   const response = await client.get<PaginatedResponse<Record<string, unknown>>>(
     `/api/channels?page=${page}&page_size=${pageSize}`
@@ -158,7 +158,7 @@ export const handleListChannels = async (
   const filtered = params.connection_name
     ? response.items.filter((ch) => {
         const connDetails = ch.connection_details as { name?: string } | undefined;
-        return connDetails?.name === params.connection_name;
+        return connDetails?.name?.toLowerCase().includes(params.connection_name!.toLowerCase());
       })
     : response.items;
 

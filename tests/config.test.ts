@@ -56,4 +56,11 @@ describe('loadConfig', () => {
 
     expect(() => loadConfig()).toThrow('RABBITMQ_PASSWORD');
   });
+
+  it('should list all missing vars when multiple are missing', () => {
+    vi.stubEnv('RABBITMQ_MANAGEMENT_URL', '');
+    vi.stubEnv('RABBITMQ_USERNAME', '');
+
+    expect(() => loadConfig()).toThrow('RABBITMQ_MANAGEMENT_URL, RABBITMQ_USERNAME');
+  });
 });
