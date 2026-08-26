@@ -1,15 +1,28 @@
 {
-  "name": "rabbitmq-mcp-server",
+  "name": "@orbitant/rabbitmq-mcp-server",
   "version": "0.1.0",
   "description": "MCP server for RabbitMQ Management API diagnostics",
   "type": "module",
   "main": "dist/index.js",
+  "bin": {
+    "rabbitmq-mcp-server": "dist/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "engines": {
+    "node": ">=22.14"
+  },
+  "publishConfig": {
+    "access": "public"
+  },
   "scripts": {
     "build": "tsc -p tsconfig.build.json",
     "start": "node dist/index.js",
     "dev": "tsc -p tsconfig.build.json --watch",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "prepublishOnly": "npm run build"
   },
   "keywords": [
     "mcp",
