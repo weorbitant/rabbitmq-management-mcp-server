@@ -2,6 +2,14 @@
   "name": "@orbitant/rabbitmq-mcp-server",
   "version": "0.1.0",
   "description": "MCP server for RabbitMQ Management API diagnostics",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/weorbitant/rabbitmq-management-mcp-server.git"
+  },
+  "homepage": "https://github.com/weorbitant/rabbitmq-management-mcp-server#readme",
+  "bugs": {
+    "url": "https://github.com/weorbitant/rabbitmq-management-mcp-server/issues"
+  },
   "type": "module",
   "main": "dist/index.js",
   "bin": {
