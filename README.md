@@ -16,13 +16,21 @@ Diagnosing slow message consumption in RabbitMQ requires correlating several met
 
 ## Requirements
 
-- Node.js 18+ (uses built-in `fetch`)
+- Node.js 22.14+ (uses built-in `fetch`)
 - RabbitMQ with the Management Plugin enabled (`rabbitmq-plugins enable rabbitmq_management`)
 
 ## Installation
 
+From npm:
+
 ```bash
-git clone https://github.com/orbitant/rabbitmq-management-mcp-server.git
+npx @orbitant/rabbitmq-mcp-server
+```
+
+From source:
+
+```bash
+git clone https://github.com/weorbitant/rabbitmq-management-mcp-server.git
 cd rabbitmq-management-mcp-server
 npm install
 npm run build
@@ -61,8 +69,8 @@ Add the server to your Claude Code MCP configuration (`~/.claude/mcp.json` or pr
 {
   "mcpServers": {
     "rabbitmq": {
-      "command": "node",
-      "args": ["/absolute/path/to/rabbitmq-management-mcp-server/dist/index.js"],
+      "command": "npx",
+      "args": ["@orbitant/rabbitmq-mcp-server"],
       "env": {
         "RABBITMQ_MANAGEMENT_URL": "http://localhost:15672",
         "RABBITMQ_USERNAME": "guest",
@@ -73,6 +81,8 @@ Add the server to your Claude Code MCP configuration (`~/.claude/mcp.json` or pr
   }
 }
 ```
+
+When running from source instead, use `"command": "node"` with `"args": ["/absolute/path/to/rabbitmq-management-mcp-server/dist/index.js"]`.
 
 ## Available Tools
 
@@ -205,6 +215,28 @@ npm test
 # Run tests in watch mode
 npm run test:watch
 ```
+
+## Releasing
+
+Releases are published to npm as `@orbitant/rabbitmq-mcp-server` via GitHub Actions. CI runs tests and build on every PR and push to `main`; publishing happens on version tags.
+
+**One-time prerequisite:** an npm granular access token with publish permission on the `@orbitant` scope must be stored as the `NPM_TOKEN` secret in the repository settings.
+
+**Release workflow:**
+
+1. Create a feature branch (or worktree) from `main`, develop, and open a PR — CI must be green.
+2. Merge the PR into `main`.
+3. Bump the version and push:
+
+```bash
+git checkout main && git pull
+npm version patch   # or minor / major — bumps package.json, commits, and creates tag vX.Y.Z
+git push origin main --follow-tags
+```
+
+4. Pushing the `v*` tag triggers the publish workflow: it validates the tag against `package.json`, re-runs tests and build, publishes to npm with provenance, and creates a GitHub Release. If tests or build fail, nothing is published.
+
+The workflows run on Node.js 22.14+ and already carry the `id-token: write` OIDC permission, so migrating to [npm Trusted Publishing](https://docs.npmjs.com/trusted-publishers) later only requires dropping the `NODE_AUTH_TOKEN` from the publish step.
 
 ## Project Structure
 

@@ -1,3 +1,5 @@
+#!/usr/bin/env node
+import { createRequire } from 'node:module';
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import * as z from 'zod/v4';
@@ -13,6 +15,9 @@ import {
   handleListChannels,
   handleGetOverview,
 } from './tools.js';
+
+// package.json sits one level above both src/ (dev) and dist/ (build output)
+const { version: SERVER_VERSION } = createRequire(import.meta.url)('../package.json') as { version: string };
 
 const toTextResult = (data: unknown) => ({
   content: [{ type: 'text' as const, text: JSON.stringify(data, null, 2) }],
@@ -31,7 +36,7 @@ const main = async (): Promise<void> => {
 
   const server = new McpServer({
     name: 'rabbitmq-mcp-server',
-    version: '0.1.0',
+    version: SERVER_VERSION,
   });
 
   // --- Queue Tools ---
