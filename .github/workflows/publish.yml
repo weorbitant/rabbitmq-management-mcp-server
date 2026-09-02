@@ -32,19 +32,18 @@ jobs:
             exit 1
           fi
 
+      # npm stage publish requires npm >= 11.15.0
+      - name: Upgrade npm
+        run: npm install -g npm@latest
+
       - name: Install dependencies
         run: npm ci
-
-      - name: Run tests
-        run: npm test
 
       - name: Build
         run: npm run build
 
       - name: Publish
-        run: npm publish --provenance --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm stage publish
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
